@@ -34,6 +34,9 @@ jobs:
               "body": "${{ github.event.issue.body }}",
               "categoryId": "DIC_kwDOKsQLc84Cxoxg"
             }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Comment on Issue With Discussion Link
         run: |
@@ -42,6 +45,7 @@ jobs:
             --body "This issue has been moved to discussion: ${DISC_URL}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Close Issue
         run: |
@@ -50,3 +54,4 @@ jobs:
             --comment "Discussion created: ${DISC_URL}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
