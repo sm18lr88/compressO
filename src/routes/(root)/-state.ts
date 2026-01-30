@@ -1,7 +1,7 @@
 import cloneDeep from 'lodash/cloneDeep'
 import { proxy } from 'valtio'
 
-import { Video, VideoConfig } from './-types'
+import { BatchConfig, BatchState, Video, VideoConfig } from './-types'
 
 const videoConfigInitialState: VideoConfig = {
   convertToExtension: 'mp4',
@@ -12,7 +12,29 @@ const videoConfigInitialState: VideoConfig = {
   shouldEnableQuality: false,
 }
 
+const batchConfigInitialState: BatchConfig = {
+  namingMode: 'suffix',
+  prefix: '',
+  suffix: '_compressed',
+  outputFolderMode: 'source',
+  outputFolder: null,
+  includeSubfolders: true,
+}
+
+const batchInitialState: BatchState = {
+  items: [],
+  isCompressing: false,
+  isCompleted: false,
+  cancelRequested: false,
+  currentItemId: null,
+  completedCount: 0,
+  failedCount: 0,
+  skippedCount: 0,
+  config: batchConfigInitialState,
+}
+
 const videoInitialState: Video = {
+  mode: 'single',
   id: null,
   isFileSelected: false,
   pathRaw: null,
@@ -32,11 +54,14 @@ const videoInitialState: Video = {
   compressedVideo: null,
   compressionProgress: 0,
   config: videoConfigInitialState,
+  batch: batchInitialState,
 }
 
-const snapshotMoment = {
+const snapshotMoment: {
+  readonly beforeCompressionStarted: 'beforeCompressionStarted'
+} = {
   beforeCompressionStarted: 'beforeCompressionStarted',
-} as const
+}
 
 type SnapshotMoment = keyof typeof snapshotMoment
 

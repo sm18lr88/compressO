@@ -12,7 +12,7 @@ use crate::domain::FileMetadata;
 pub fn setup_app_data_dir(app: &mut tauri::App) -> Result<PathBuf, tauri::Error> {
     let scope = app.fs_scope();
     let app_data_directory = app.path().app_data_dir()?;
-    scope.allow_directory(&app_data_directory, true);
+    let _ = scope.allow_directory(&app_data_directory, true).ok();
 
     // Create assets directory required for ffmpeg
     fs::create_dir_all(format!(
@@ -25,24 +25,32 @@ pub fn setup_app_data_dir(app: &mut tauri::App) -> Result<PathBuf, tauri::Error>
 
 /// Get metadata of a file from it's full path
 pub fn get_file_metadata(path: &str) -> Result<FileMetadata, String> {
-    let metadata_ref = fs::metadata(path);
-
-    if metadata_ref.is_err() {
-        return Err(String::from("File does not exist in the given path."));
-    }
-
-    let metadata = metadata_ref.unwrap();
+    let metadata = fs::metadata(path)
+        .map_err(|_| String::from("File does not exist in the given path."))?;
     let file_path = Path::new(path);
-    let mime_type = infer::get_from_path(path).unwrap();
+    let mime_type = infer::get_from_path(path)
+        .map_err(|e| format!("Failed to read file for MIME type inference: {}", e))?;
+
+    let file_name = file_path
+        .file_name()
+        .ok_or_else(|| String::from("File path does not have a file name"))?
+        .to_str()
+        .ok_or_else(|| String::from("File name is not valid UTF-8"))?;
+
+    let extension = file_path
+        .extension()
+        .ok_or_else(|| String::from("File path does not have an extension"))?
+        .to_str()
+        .ok_or_else(|| String::from("File extension is not valid UTF-8"))?;
 
     Ok(FileMetadata {
         path: String::from(path),
-        file_name: String::from(file_path.file_name().unwrap().to_str().unwrap()),
+        file_name: String::from(file_name),
         mime_type: match mime_type {
             Some(m) => m.to_string(),
             None => String::from(""),
         },
-        extension: String::from(file_path.extension().unwrap().to_str().unwrap()),
+        extension: String::from(extension),
         size: metadata.len(),
     })
 }
@@ -81,7 +89,9 @@ pub async fn delete_stale_files(
     duration_in_millis: u64,
 ) -> std::io::Result<Vec<PathBuf>> {
     let mut entries = tokio::fs::read_dir(path).await?;
-    let now = SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap();
+    let now = SystemTime::now()
+        .duration_since(time::UNIX_EPOCH)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
     let mut deleted_files: Vec<PathBuf> = vec![];
     while let Some(entry) = entries.next_entry().await? {
         let metadata = entry.metadata().await?;

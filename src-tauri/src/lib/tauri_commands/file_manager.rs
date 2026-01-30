@@ -2,6 +2,8 @@
 use std::sync::Mutex;
 #[cfg(target_os = "linux")]
 use tauri::State;
+#[cfg(target_os = "macos")]
+use std::path::PathBuf;
 
 #[cfg(target_os = "linux")]
 pub struct DbusState(pub Mutex<Option<dbus::blocking::SyncConnection>>);
@@ -19,7 +21,10 @@ pub fn show_item_in_file_manager(path: String, dbus_state: State<DbusState>) -> 
             true => path,
             false => {
                 path_buf.pop();
-                path_buf.into_os_string().into_string().unwrap()
+                path_buf
+                    .into_os_string()
+                    .into_string()
+                    .map_err(|_| "file path is not valid UTF-8".to_string())?
             }
         };
         Command::new("xdg-open")
@@ -28,7 +33,9 @@ pub fn show_item_in_file_manager(path: String, dbus_state: State<DbusState>) -> 
             .map_err(|e| format!("{e:?}"))?;
     } else {
         // https://docs.rs/dbus/latest/dbus/
-        let dbus = dbus_guard.as_ref().unwrap();
+        let dbus = dbus_guard
+            .as_ref()
+            .ok_or_else(|| "dbus connection should be available".to_string())?;
         let proxy = dbus.with_proxy(
             "org.freedesktop.FileManager1",
             "/org/freedesktop/FileManager1",
@@ -48,7 +55,7 @@ pub fn show_item_in_file_manager(path: String, dbus_state: State<DbusState>) -> 
 #[cfg(not(target_os = "linux"))]
 #[tauri::command]
 pub fn show_item_in_file_manager(path: String) -> Result<(), String> {
-    use std::{path::PathBuf, process::Command};
+    use std::process::Command;
     #[cfg(target_os = "windows")]
     {
         Command::new("explorer")

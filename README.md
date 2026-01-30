@@ -51,6 +51,19 @@ Download installers for the specific platform can be accessed from the [releases
 - `CompressO_x64.msi`: Windows 64 bit
 - `CompressO_x86.msi`: Windows 32 bit
 
+### CLI (Batch conversions) 🖥️
+
+This repo includes an interactive TUI CLI for automated batch conversions.
+
+From the repo root:
+
+```
+cd src-tauri
+cargo run --bin compresso-cli
+```
+
+The CLI looks for the bundled `compresso_ffmpeg` sidecar in `src-tauri/bin`. You can override the path with `COMPRESSO_FFMPEG_PATH`.
+
 ### Roadmap 🏁
 
 - [x] Cancel during compression

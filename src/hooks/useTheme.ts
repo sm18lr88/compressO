@@ -11,9 +11,14 @@ export type ThemeProxy = {
   toggleTheme: () => void
 }
 
-let persistedTheme: ThemeVariant | null = localStorage.getItem(
-  constants.theme,
-) as ThemeVariant
+function isThemeVariant(value: string | null): value is ThemeVariant {
+  return value === 'light' || value === 'dark'
+}
+
+const storedTheme = localStorage.getItem(constants.theme)
+let persistedTheme: ThemeVariant | null = isThemeVariant(storedTheme)
+  ? storedTheme
+  : null
 
 if (persistedTheme && !['dark', 'light'].includes(persistedTheme)) {
   localStorage.removeItem(constants.theme)
@@ -30,7 +35,7 @@ const themeProxy: ThemeProxy = proxy({
   },
 })
 
-export function useTheme() {
+export function useTheme(): ThemeProxy {
   const snapshot = useSnapshot(themeProxy)
 
   useEffect(() => {

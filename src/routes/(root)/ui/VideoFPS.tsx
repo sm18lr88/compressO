@@ -7,7 +7,7 @@ import Switch from '@/components/Switch'
 import { slideDownTransition } from '@/utils/animation'
 import { videoProxy } from '../-state'
 
-const FPS = [24, 25, 30, 50, 60] as const
+const FPS: readonly number[] = [24, 25, 30, 50, 60]
 
 function VideoFPS() {
   const {

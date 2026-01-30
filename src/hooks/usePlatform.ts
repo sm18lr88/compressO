@@ -2,7 +2,14 @@
  * Current platform
  * @returns {string}: 'linux', 'macos', 'ios', 'freebsd', 'dragonfly', 'netbsd', 'openbsd', 'solaris', 'android', 'windows'. Returns null for unsupported platform.
  */
-export function usePlatform() {
+type PlatformInfo = {
+  name: string
+  isLinux: boolean
+  isMac: boolean
+  isWindows: boolean
+}
+
+export function usePlatform(): PlatformInfo {
   const platform = window.navigator.userAgent.toLowerCase()
   return {
     name: platform,

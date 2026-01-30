@@ -6,7 +6,7 @@ type ChildrenFnParams = { onClick: () => void }
 
 type Error = {
   message: string
-  data?: any
+  data?: unknown
 }
 
 type VideoPickerProps = {
@@ -38,9 +38,10 @@ export default function VideoPicker({
         return
       }
       onSuccess?.({ filePath })
-    } catch (error: any) {
+    } catch (error: unknown) {
       onError?.({
-        message: error?.message ?? 'Could not select video.',
+        message:
+          error instanceof Error ? error.message : 'Could not select video.',
         data: error,
       })
     }

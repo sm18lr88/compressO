@@ -2,8 +2,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use lib::fs::{self as file_system};
-use tauri::Manager;
-use tauri_plugin_log::{Target as LogTarget, TargetKind as LogTargetKind};
+use tauri_plugin_log::Target as LogTarget;
+#[cfg(debug_assertions)]
+use tauri_plugin_log::TargetKind as LogTargetKind;
 
 use lib::tauri_commands::{
     ffmpeg::{
@@ -13,8 +14,8 @@ use lib::tauri_commands::{
     file_manager::{__cmd__show_item_in_file_manager, show_item_in_file_manager},
     fs::{
         __cmd__delete_cache, __cmd__delete_file, __cmd__get_file_metadata,
-        __cmd__get_image_dimension, __cmd__move_file, delete_cache, delete_file, get_file_metadata,
-        get_image_dimension, move_file,
+        __cmd__get_image_dimension, __cmd__move_file, __cmd__resolve_video_files, delete_cache,
+        delete_file, get_file_metadata, get_image_dimension, move_file, resolve_video_files,
     }
 };
 
@@ -31,7 +32,7 @@ const LOG_TARGETS: [LogTarget; 0] = [];
 
 #[tokio::main]
 async fn main() {
-    tauri::Builder::default()
+    if let Err(err) = tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
                 .targets(LOG_TARGETS)
@@ -61,8 +62,11 @@ async fn main() {
             move_file,
             delete_file,
             delete_cache,
+            resolve_video_files,
             show_item_in_file_manager
         ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    {
+        eprintln!("error while running tauri application: {err}");
+    }
 }

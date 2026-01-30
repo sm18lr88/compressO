@@ -1,6 +1,6 @@
 import { Variants } from 'framer-motion'
 
-export const zoomInTransition: Variants = {
+export const zoomInTransition = {
   initial: { scale: 0.9, opacity: 0 },
   animate: {
     scale: 1,
@@ -20,9 +20,9 @@ export const zoomInTransition: Variants = {
       type: 'spring',
     },
   },
-} as const
+} satisfies Variants
 
-export const slideDownTransition: Variants = {
+export const slideDownTransition = {
   initial: { y: -10, opacity: 0 },
   animate: {
     y: 0,
@@ -42,4 +42,4 @@ export const slideDownTransition: Variants = {
       type: 'spring',
     },
   },
-} as const
+} satisfies Variants

@@ -1,8 +1,9 @@
+import React from 'react'
 import { Toaster as NativeToaster, toast } from 'sonner'
 
 import { useTheme } from '@/hooks/useTheme'
 
-export function Toaster() {
+export function Toaster(): React.JSX.Element {
   const { theme } = useTheme()
   return (
     <NativeToaster

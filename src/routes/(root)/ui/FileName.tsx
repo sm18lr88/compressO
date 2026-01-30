@@ -30,10 +30,14 @@ function FileName() {
     closeModal: UseDisclosureProps['onClose']
   }) => {
     try {
-      await Promise.allSettled([
-        deleteFile(compressedVideo?.pathRaw as string),
-        deleteFile(thumbnailPathRaw as string),
-      ])
+      const deletePromises: Promise<void>[] = []
+      if (compressedVideo?.pathRaw) {
+        deletePromises.push(deleteFile(compressedVideo.pathRaw))
+      }
+      if (thumbnailPathRaw) {
+        deletePromises.push(deleteFile(thumbnailPathRaw))
+      }
+      await Promise.allSettled(deletePromises)
       closeModal?.()
       resetProxy()
     } catch {

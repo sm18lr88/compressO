@@ -238,7 +238,7 @@ function VideoTransformer() {
 }
 
 async function getCanvasBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
-  return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
+  return new Promise((resolve, _reject) => canvas.toBlob(resolve, 'image/png'))
 }
 
 export default VideoTransformer

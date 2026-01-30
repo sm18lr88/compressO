@@ -14,9 +14,12 @@ function Compressing() {
       thumbnailPath,
       config,
       compressionProgress,
+      extension,
     },
   } = useSnapshot(videoProxy)
   const { convertToExtension, shouldDisableCompression } = config
+  const targetExtension =
+    convertToExtension === 'source' ? extension : convertToExtension
 
   return isCompressing ? (
     <motion.div
@@ -50,7 +53,7 @@ function Compressing() {
       <p className="italic text-sm mt-10 text-gray-600 dark:text-gray-400 text-center animate-pulse">
         {!shouldDisableCompression ? 'Compressing' : 'Converting'}
         ...
-        {convertToExtension === 'webm' ? (
+        {targetExtension === 'webm' ? (
           <span className="block">
             webm conversion takes longer than the other formats.
           </span>

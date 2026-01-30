@@ -5,3 +5,10 @@ export type FileMetadata = {
   extension: string
   size: number
 }
+
+export type ResolveVideoFilesResult = {
+  files: FileMetadata[]
+  invalidPaths: string[]
+  skippedPaths: string[]
+  ignoredCount: number
+}

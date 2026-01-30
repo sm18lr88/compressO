@@ -32,8 +32,10 @@ import VideoDimensions from './VideoDimensions'
 import VideoFPS from './VideoFPS'
 import VideoThumbnail from './VideoThumbnail'
 import { videoProxy } from '../-state'
+import { isConvertToExtension } from '../-types'
 
 const videoExtensions = Object.keys(extensions?.video)
+const extensionOptions = ['source', ...videoExtensions] as readonly string[]
 
 function VideoConfig() {
   const {
@@ -69,10 +71,14 @@ function VideoConfig() {
           videoProxy.state.config.transformVideoConfig.previewUrl
       }
 
+      const convertToExtension =
+        videoSnapshot.state.config.convertToExtension === 'source'
+          ? (videoSnapshot.state.extension ?? 'mp4')
+          : (videoSnapshot.state?.config?.convertToExtension ?? 'mp4')
+
       const result = await compressVideo({
         videoPath: videoSnapshot.state.pathRaw as string,
-        convertToExtension:
-          videoSnapshot.state?.config?.convertToExtension ?? 'mp4',
+        convertToExtension,
         presetName: !videoSnapshot?.state?.config?.shouldDisableCompression
           ? presetName
           : null,
@@ -81,17 +87,20 @@ function VideoConfig() {
         ...(videoSnapshot?.state?.config?.shouldEnableQuality
           ? { quality: videoSnapshot.state?.config?.quality as number }
           : {}),
-        ...(videoSnapshot.state.config.shouldEnableCustomDimensions
+        ...(videoSnapshot.state.config.shouldEnableCustomDimensions &&
+        videoSnapshot.state.config.customDimensions
           ? { dimensions: videoSnapshot.state.config.customDimensions }
           : {}),
-        ...(videoSnapshot.state.config.shouldEnableCustomFPS
-          ? { fps: videoSnapshot.state.config.customFPS?.toString?.() }
+        ...(videoSnapshot.state.config.shouldEnableCustomFPS &&
+        typeof videoSnapshot.state.config.customFPS === 'number'
+          ? { fps: videoSnapshot.state.config.customFPS.toString() }
           : {}),
         ...(videoSnapshot.state.config.shouldTransformVideo
           ? {
-              transformsHistory:
-                videoSnapshot.state.config.transformVideoConfig
-                  ?.transformsHistory ?? ([] as any),
+              transformsHistory: [
+                ...(videoSnapshot.state.config.transformVideoConfig
+                  ?.transformsHistory ?? []),
+              ],
             }
           : {}),
       })
@@ -277,9 +286,12 @@ function VideoConfig() {
                   value={convertToExtension}
                   selectedKeys={[convertToExtension]}
                   onChange={(evt) => {
-                    const value = evt?.target
-                      ?.value as keyof typeof extensions.video
-                    if (value?.length > 0) {
+                    const value = evt?.target?.value
+                    if (
+                      value &&
+                      value.length > 0 &&
+                      isConvertToExtension(value)
+                    ) {
                       videoProxy.state.config.convertToExtension = value
                     }
                   }}
@@ -289,13 +301,13 @@ function VideoConfig() {
                     label: '!text-gray-600 dark:!text-gray-400 text-sm',
                   }}
                 >
-                  {videoExtensions?.map((ext) => (
+                  {extensionOptions?.map((ext) => (
                     <SelectItem
                       key={ext}
                       value={ext}
                       className="flex justify-center items-center"
                     >
-                      {ext}
+                      {ext === 'source' ? 'Same as source' : ext}
                     </SelectItem>
                   ))}
                 </Select>

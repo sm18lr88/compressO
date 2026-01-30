@@ -18,9 +18,7 @@
       "identifier": "shell:allow-execute",
       "allow": [
         {
-          "args": false,
-          "cmd": "",
-          "name": "./bin/ffmpeg",
+          "name": "bin/compresso_ffmpeg",
           "sidecar": true
         }
       ]

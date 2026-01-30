@@ -13,7 +13,13 @@ export function formatBytes(bytes: number): string {
  * Current platform
  * @returns {string}: 'linux', 'macos', 'ios', 'freebsd', 'dragonfly', 'netbsd', 'openbsd', 'solaris', 'android', 'windows'. Returns null for unsupported platform.
  */
-export function getPlatform() {
+type PlatformInfo = {
+  isLinux: boolean | undefined
+  isMacOS: boolean | undefined
+  isWindows: boolean | undefined
+}
+
+export function getPlatform(): PlatformInfo {
   const userAgent =
     typeof window === 'object' ? window?.navigator?.userAgent : undefined
   return {

@@ -69,7 +69,9 @@ function AlertDialog({
   )
 }
 
-export function AlertDialogButton(props: Omit<ButtonProps, 'ref'>) {
+export function AlertDialogButton(
+  props: Omit<ButtonProps, 'ref'>,
+): React.JSX.Element {
   return <Button variant="solid" fullWidth {...props} />
 }
 

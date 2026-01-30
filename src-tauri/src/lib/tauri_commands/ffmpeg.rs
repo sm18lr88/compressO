@@ -6,6 +6,7 @@ use crate::{
 use serde_json::Value;
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn compress_video(
     app: tauri::AppHandle,
     video_path: &str,

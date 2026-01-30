@@ -5,8 +5,21 @@ import {
   VideoTransformsHistory,
 } from '@/types/compression'
 
+export type ConvertToExtension = keyof typeof extensions.video | 'source'
+
+const validConvertToExtensions: readonly string[] = [
+  'source',
+  ...Object.keys(extensions.video),
+]
+
+export function isConvertToExtension(
+  value: string,
+): value is ConvertToExtension {
+  return validConvertToExtensions.includes(value)
+}
+
 export type VideoConfig = {
-  convertToExtension: keyof typeof extensions.video
+  convertToExtension: ConvertToExtension
   presetName: keyof typeof compressionPresets
   shouldDisableCompression: boolean
   shouldMuteVideo: boolean
@@ -24,7 +37,63 @@ export type VideoConfig = {
   }
 }
 
+export type BatchNamingMode = 'suffix' | 'prefix' | 'replace'
+export type BatchOutputFolderMode = 'source' | 'custom'
+
+export type BatchConfig = {
+  namingMode: BatchNamingMode
+  prefix: string
+  suffix: string
+  outputFolderMode: BatchOutputFolderMode
+  outputFolder: string | null
+  includeSubfolders: boolean
+}
+
+export type BatchItemStatus =
+  | 'pending'
+  | 'compressing'
+  | 'success'
+  | 'failed'
+  | 'skipped'
+  | 'cancelled'
+
+export type BatchItem = {
+  id: string
+  path: string
+  fileName: string
+  extension: string
+  sizeInBytes: number
+  size: string
+  status: BatchItemStatus
+  progress?: number
+  durationMilliseconds?: number | null
+  durationRaw?: string | null
+  error?: string | null
+  output?: {
+    pathRaw?: string | null
+    path?: string | null
+    fileName?: string | null
+    sizeInBytes?: number | null
+    size?: string | null
+    extension?: string | null
+    savedPath?: string | null
+  } | null
+}
+
+export type BatchState = {
+  items: BatchItem[]
+  isCompressing: boolean
+  isCompleted: boolean
+  cancelRequested: boolean
+  currentItemId: string | null
+  completedCount: number
+  failedCount: number
+  skippedCount: number
+  config: BatchConfig
+}
+
 export type Video = {
+  mode: 'single' | 'batch'
   id?: string | null
   isFileSelected: boolean
   pathRaw?: string | null
@@ -58,4 +127,5 @@ export type Video = {
   config: VideoConfig
   dimensions?: { width: number; height: number }
   fps?: number
+  batch: BatchState
 }

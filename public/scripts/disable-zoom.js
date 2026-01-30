@@ -1,69 +1,69 @@
-;((document, window) => {
+((document, window) => {
   if (!document || !window) {
-    return
+    return;
   }
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener("DOMContentLoaded", () => {
     document.body.addEventListener(
-      'wheel',
+      "wheel",
       (evt) => {
         if (evt.ctrlKey || evt.metaKey) {
-          evt.preventDefault()
-          evt.stopImmediatePropagation()
-          return false
+          evt.preventDefault();
+          evt.stopImmediatePropagation();
+          return false;
         }
       },
       { passive: false },
-    )
+    );
 
     document.addEventListener(
-      'touchmove',
+      "touchmove",
       (evt) => {
-        evt.preventDefault()
-        evt.stopImmediatePropagation()
-        return false
+        evt.preventDefault();
+        evt.stopImmediatePropagation();
+        return false;
       },
       { passive: false },
-    )
+    );
 
     window.addEventListener(
-      'keydown',
+      "keydown",
       function (evt) {
         if (
           (evt.ctrlKey || evt.metaKey) &&
-          (evt.key === '-' || evt.key === '=' || evt.key === '0')
+          (evt.key === "-" || evt.key === "=" || evt.key === "0")
         ) {
-          evt.preventDefault()
-          evt.stopImmediatePropagation()
-          return false
+          evt.preventDefault();
+          evt.stopImmediatePropagation();
+          return false;
         }
       },
       { passive: false },
-    )
+    );
 
     document.addEventListener(
-      'gesturestart',
+      "gesturestart",
       function (evt) {
-        evt.preventDefault()
-        return false
+        evt.preventDefault();
+        return false;
       },
       { passive: false },
-    )
+    );
 
     document.addEventListener(
-      'gesturechange',
+      "gesturechange",
       function (evt) {
-        evt.preventDefault()
-        return false
+        evt.preventDefault();
+        return false;
       },
       { passive: false },
-    )
+    );
     document.addEventListener(
-      'gestureend',
+      "gestureend",
       function (evt) {
-        evt.preventDefault()
-        return false
+        evt.preventDefault();
+        return false;
       },
       { passive: false },
-    )
-  })
-})(document, window)
+    );
+  });
+})(document, window);

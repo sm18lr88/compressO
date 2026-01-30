@@ -11,11 +11,33 @@ use std::{
     io::{BufRead, BufReader},
     path::{Path, PathBuf},
     process::{Command, Stdio},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, OnceLock},
 };
 use strum::EnumProperty;
 use tauri::{AppHandle, Emitter, Listener, Manager};
 use tauri_plugin_shell::ShellExt;
+
+// Static regex patterns compiled once at first use
+static OUT_TIME_RE: OnceLock<Regex> = OnceLock::new();
+static DURATION_RE: OnceLock<Regex> = OnceLock::new();
+static DIMENSION_RE: OnceLock<Regex> = OnceLock::new();
+static FPS_RE: OnceLock<Regex> = OnceLock::new();
+
+fn get_out_time_re() -> &'static Regex {
+    OUT_TIME_RE.get_or_init(|| Regex::new(r"out_time=(?P<out_time>.*?)\n").expect("out_time regex pattern is invalid"))
+}
+
+fn get_duration_re() -> &'static Regex {
+    DURATION_RE.get_or_init(|| Regex::new(r"Duration: (?P<duration>.*?),").expect("duration regex pattern is invalid"))
+}
+
+fn get_dimension_re() -> &'static Regex {
+    DIMENSION_RE.get_or_init(|| Regex::new(r"Video:.*?,.*? (?P<width>\d{2,5})x(?P<height>\d{2,5})").expect("dimension regex pattern is invalid"))
+}
+
+fn get_fps_re() -> &'static Regex {
+    FPS_RE.get_or_init(|| Regex::new(r"(?P<fps>\d+(\.\d+)?) fps").expect("fps regex pattern is invalid"))
+}
 
 pub struct FFMPEG {
     app: AppHandle,
@@ -24,6 +46,8 @@ pub struct FFMPEG {
 }
 
 const EXTENSIONS: [&str; 5] = ["mp4", "mov", "webm", "avi", "mkv"];
+
+type VideoInfoTaskResult = (u8, Option<String>, Option<(u32, u32)>, Option<f32>);
 
 impl FFMPEG {
     pub fn new(app: &tauri::AppHandle) -> Result<Self, String> {
@@ -52,6 +76,7 @@ impl FFMPEG {
     }
 
     /// Compresses a video from a path
+    #[allow(clippy::too_many_arguments)]
     pub async fn compress_video(
         &mut self,
         video_path: &str,
@@ -174,14 +199,14 @@ impl FFMPEG {
         let pad_filter = if let Some((width, height)) = dimensions {
             format!("scale={}:{},{}", width, height, padding)
         } else {
-            format!("{}", padding)
+            padding.to_string()
         };
 
         let mut vf_filter = String::new();
 
         if !transform_filters.is_empty() {
             vf_filter.push_str(&transform_filters);
-            vf_filter.push_str(",")
+            vf_filter.push(',')
         }
 
         vf_filter.push_str(&pad_filter);
@@ -220,6 +245,7 @@ impl FFMPEG {
         match SharedChild::spawn(command) {
             Ok(child) => {
                 let cp = Arc::new(child);
+                #[cfg(debug_assertions)]
                 let cp_clone1 = cp.clone();
                 let cp_clone2 = cp.clone();
                 let cp_clone3 = cp.clone();
@@ -229,8 +255,8 @@ impl FFMPEG {
                     Some(window) => window,
                     None => return Err(String::from("Could not attach to main window")),
                 };
-                let destroy_event_id =
-                    window.listen(TauriEvents::Destroyed.get_str("key").unwrap(), move |_| {
+                let destroy_event_id = if let Some(event_key) = TauriEvents::Destroyed.get_str("key") {
+                    Some(window.listen(event_key, move |_| {
                         log::info!("[tauri] window destroyed");
                         match cp.kill() {
                             Ok(_) => {
@@ -243,7 +269,11 @@ impl FFMPEG {
                                 );
                             }
                         }
-                    });
+                    }))
+                } else {
+                    log::error!("TauriEvents::Destroyed missing 'key' property");
+                    None
+                };
 
                 let should_cancel = Arc::new(Mutex::new(false));
                 let should_cancel_clone = Arc::clone(&should_cancel);
@@ -269,8 +299,11 @@ impl FFMPEG {
                                         );
                                     }
                                 };
-                                let mut _should_cancel = should_cancel_clone.lock().unwrap();
-                                *_should_cancel = true;
+                                if let Ok(mut guard) = should_cancel_clone.lock() {
+                                    *guard = true;
+                                } else {
+                                    log::error!("Failed to acquire should_cancel mutex lock");
+                                }
                             }
                         }
                     },
@@ -305,6 +338,7 @@ impl FFMPEG {
                 let thread: tokio::task::JoinHandle<u8> = tokio::spawn(async move {
                     if let Some(stdout) = cp_clone2.take_stdout() {
                         let mut reader = BufReader::new(stdout);
+                        let out_time_re = get_out_time_re();
                         loop {
                             let mut buf: Vec<u8> = Vec::new();
                             match tauri::utils::io::read_line(&mut reader, &mut buf) {
@@ -314,9 +348,7 @@ impl FFMPEG {
                                     }
                                     if let Ok(output) = std::str::from_utf8(&buf) {
                                         log::debug!("stdout: {:?}", output);
-                                        let re =
-                                            Regex::new("out_time=(?<out_time>.*?)\\n").unwrap();
-                                        if let Some(cap) = re.captures(output) {
+                                        if let Some(cap) = out_time_re.captures(output) {
                                             let out_time = &cap["out_time"];
                                             if !out_time.is_empty() {
                                                 tx.try_send(String::from(out_time)).ok();
@@ -371,7 +403,9 @@ impl FFMPEG {
                 };
 
                 // Cleanup
-                window.unlisten(destroy_event_id);
+                if let Some(event_id) = destroy_event_id {
+                    window.unlisten(event_id);
+                }
                 window.unlisten(cancel_event_id);
                 match cp_clone3.kill() {
                     Ok(_) => {
@@ -382,8 +416,13 @@ impl FFMPEG {
                     }
                 }
 
-                let is_cancelled = should_cancel.lock().unwrap();
-                if *is_cancelled {
+                let is_cancelled = if let Ok(guard) = should_cancel.lock() {
+                    *guard
+                } else {
+                    log::error!("Failed to acquire should_cancel mutex lock");
+                    false
+                };
+                if is_cancelled {
                     return Err(String::from("CANCELLED"));
                 }
 
@@ -437,17 +476,19 @@ impl FFMPEG {
                     Some(window) => window,
                     None => return Err(String::from("Could not attach to main window")),
                 };
-                let destroy_event_id = window.listen(
-                    TauriEvents::Destroyed.get_str("key").unwrap(),
-                    move |_| match cp.kill() {
+                let destroy_event_id = if let Some(event_key) = TauriEvents::Destroyed.get_str("key") {
+                    Some(window.listen(event_key, move |_| match cp.kill() {
                         Ok(_) => {
                             log::info!("child process killed.");
                         }
                         Err(err) => {
                             log::error!("child process could not be killed {}", err.to_string());
                         }
-                    },
-                );
+                    }))
+                } else {
+                    log::error!("TauriEvents::Destroyed missing 'key' property");
+                    None
+                };
 
                 let thread: tokio::task::JoinHandle<u8> = tokio::spawn(async move {
                     if cp_clone1.wait().is_ok() {
@@ -468,7 +509,9 @@ impl FFMPEG {
                 };
 
                 // Cleanup
-                window.unlisten(destroy_event_id);
+                if let Some(event_id) = destroy_event_id {
+                    window.unlisten(event_id);
+                }
                 match cp_clone2.kill() {
                     Ok(_) => {
                         log::info!("child process killed.");
@@ -515,31 +558,27 @@ impl FFMPEG {
                     None => return Err(String::from("Could not attach to main window")),
                 };
 
-                let destroy_event_id = window.listen(
-                    TauriEvents::Destroyed.get_str("key").unwrap(),
-                    move |_| match cp.kill() {
+                let destroy_event_id = if let Some(event_key) = TauriEvents::Destroyed.get_str("key") {
+                    Some(window.listen(event_key, move |_| match cp.kill() {
                         Ok(_) => log::info!("child process killed."),
                         Err(err) => log::error!("child process could not be killed {}", err),
-                    },
-                );
+                    }))
+                } else {
+                    log::error!("TauriEvents::Destroyed missing 'key' property");
+                    None
+                };
 
-                let thread: tokio::task::JoinHandle<(
-                    u8,
-                    Option<String>,
-                    Option<(u32, u32)>,
-                    Option<f32>,
-                )> = tokio::task::spawn(async move {
+                let thread: tokio::task::JoinHandle<VideoInfoTaskResult> =
+                    tokio::task::spawn(async move {
                     let mut duration: Option<String> = None;
                     let mut dimensions: Option<(u32, u32)> = None;
                     let mut fps: Option<f32> = None;
 
                     if let Some(stderr) = cp_clone1.take_stderr() {
                         let reader = BufReader::new(stderr);
-                        let duration_re = Regex::new(r"Duration: (?P<duration>.*?),").unwrap();
-                        let dimension_re =
-                            Regex::new(r"Video:.*?,.*? (?P<width>\d{2,5})x(?P<height>\d{2,5})")
-                                .unwrap();
-                        let fps_re = Regex::new(r"(?P<fps>\d+(\.\d+)?) fps").unwrap();
+                        let duration_re = get_duration_re();
+                        let dimension_re = get_dimension_re();
+                        let fps_re = get_fps_re();
 
                         for line_res in reader.lines() {
                             if let Ok(line) = line_res {
@@ -597,7 +636,9 @@ impl FFMPEG {
                 };
 
                 // Cleanup
-                window.unlisten(destroy_event_id);
+                if let Some(event_id) = destroy_event_id {
+                    window.unlisten(event_id);
+                }
                 if let Err(err) = cp_clone2.kill() {
                     log::error!("child process could not be killed {}", err);
                 }

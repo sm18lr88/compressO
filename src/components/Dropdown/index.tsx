@@ -1,12 +1,9 @@
 import {
   Dropdown as NextUIDropdown,
   DropdownItem as NextUIDropdownItem,
-  type DropdownItemProps as NextUIDropdownItemProps,
   DropdownMenu as NextUIDropdownMenu,
-  type DropdownMenuProps as NextUIDropdownMenuProps,
   type DropdownProps as NextUIDropdownProps,
   DropdownTrigger as NextUIDropdownTrigger,
-  type DropdownTriggerProps as NextUIDropdownTriggerProps,
 } from '@heroui/dropdown'
 
 import { blurCSS } from '@/ui/BackdropBlur'
@@ -25,19 +22,9 @@ function Dropdown(props: DropdownProps) {
   )
 }
 
-interface DropdownTriggerProps extends NextUIDropdownTriggerProps {}
-export function DropdownTrigger(props: DropdownTriggerProps) {
-  return <NextUIDropdownTrigger {...props} />
-}
-
-interface DropdownMenuProps extends NextUIDropdownMenuProps {}
-export function DropdownMenu(props: DropdownMenuProps) {
-  return <NextUIDropdownMenu {...props} />
-}
-
-interface DropdownItemProps extends NextUIDropdownItemProps {}
-export function DropdownItem(props: DropdownItemProps) {
-  return <NextUIDropdownItem {...props} />
-}
+// Re-export directly to preserve React Aria collection mechanism
+export const DropdownTrigger = NextUIDropdownTrigger
+export const DropdownMenu = NextUIDropdownMenu
+export const DropdownItem = NextUIDropdownItem
 
 export default Dropdown

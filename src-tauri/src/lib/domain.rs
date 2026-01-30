@@ -18,6 +18,15 @@ pub struct FileMetadata {
     pub size: u64,
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolveVideoFilesResult {
+    pub files: Vec<FileMetadata>,
+    pub invalid_paths: Vec<String>,
+    pub skipped_paths: Vec<String>,
+    pub ignored_count: u64,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct VideoCompressionProgress {

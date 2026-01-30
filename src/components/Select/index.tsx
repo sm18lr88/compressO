@@ -1,7 +1,6 @@
 import {
   Select as NextUISelect,
   SelectItem as NextUISelectItem,
-  type SelectItemProps as NextUISelectItemProps,
   type SelectProps as NextUISelectProps,
 } from '@heroui/select'
 
@@ -30,9 +29,7 @@ function Select(props: SelectProps) {
   )
 }
 
-interface SelectItemProps extends NextUISelectItemProps {}
-export function SelectItem(props: SelectItemProps) {
-  return <NextUISelectItem {...props} />
-}
+// Re-export directly to preserve React Aria collection mechanism
+export const SelectItem = NextUISelectItem
 
 export default Select

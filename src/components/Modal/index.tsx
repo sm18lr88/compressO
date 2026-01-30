@@ -35,19 +35,19 @@ function Modal({ motionVariant, ...props }: ModalProps) {
 }
 
 interface ModalHeaderProps extends NextUIModalHeaderProps {}
-export function ModalHeader(props: ModalHeaderProps) {
+export function ModalHeader(props: ModalHeaderProps): React.JSX.Element {
   return <NextUIModalHeader {...props} />
 }
 
 interface ModalBodyProps extends NextUIModalBodyProps {}
-export function ModalBody(props: ModalBodyProps) {
+export function ModalBody(props: ModalBodyProps): React.JSX.Element {
   return <NextUIModalBody {...props} />
 }
 
 interface ModalContentProps extends NextUIModalContentProps {
   children: React.ReactNode
 }
-export function ModalContent(props: ModalContentProps) {
+export function ModalContent(props: ModalContentProps): React.JSX.Element {
   return (
     <NextUIModalContent
       {...props}
@@ -63,7 +63,7 @@ export function ModalContent(props: ModalContentProps) {
 }
 
 interface ModalFooterProps extends NextUIModalFooterProps {}
-export function ModalFooter(props: ModalFooterProps) {
+export function ModalFooter(props: ModalFooterProps): React.JSX.Element {
   return <NextUIModalFooter {...props} />
 }
 

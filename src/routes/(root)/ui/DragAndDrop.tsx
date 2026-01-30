@@ -13,9 +13,10 @@ const videoExtensions = Object.keys(extensions?.video)
 type DragAndDropProps = {
   disable?: boolean
   onFile?: (filePath: string) => void
+  onFiles?: (filePaths: string[]) => void
 }
 
-function DragAndDrop({ disable = false, onFile }: DragAndDropProps) {
+function DragAndDrop({ disable = false, onFile, onFiles }: DragAndDropProps) {
   const [dragAndDropState, setDragAndDropState] = React.useState<
     'idle' | 'dragging' | 'dropped'
   >('idle')
@@ -53,8 +54,12 @@ function DragAndDrop({ disable = false, onFile }: DragAndDropProps) {
               dragAndDropListenerIsDroppedRef.current = false
             }, 1000)
             toast.dismiss()
-            const paths = evt?.payload?.paths
+            const paths = evt?.payload?.paths ?? []
             if (paths.length > 0) {
+              if (onFiles) {
+                onFiles(paths)
+                return
+              }
               const filePath = paths?.[0]
               const filePathSplitted = filePath?.split('.')
               if (filePathSplitted.length) {
@@ -89,7 +94,7 @@ function DragAndDrop({ disable = false, onFile }: DragAndDropProps) {
     return () => {
       cancelDragAndDropEvents()
     }
-  }, [onFile, disable, cancelDragAndDropEvents])
+  }, [onFile, onFiles, disable, cancelDragAndDropEvents])
 
   return (
     <>

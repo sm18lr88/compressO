@@ -23,7 +23,9 @@ function Setting() {
   const [selectedKey, setSelectedKey] = React.useState<DropdownKey>('settings')
   const handleDropdownAction = (item: string | number) => {
     modalDisclosure.onOpen()
-    setSelectedKey(item as DropdownKey)
+    if (item === 'settings' || item === 'about') {
+      setSelectedKey(item)
+    }
   }
 
   return (

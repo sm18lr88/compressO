@@ -4,7 +4,7 @@
  * @param {string} duration: Time Duration. The format can be "HH:MM:SS" or "HH:MM:SS.mm"
  * @returns {number}: The converted milliseconds. If the format is wrong, it'll return 0.
  */
-export function convertDurationToMilliseconds(duration: string) {
+export function convertDurationToMilliseconds(duration: string): number {
   try {
     const [h, m, s] = duration.split(':')
     const hours = Number.parseInt(h, 10)

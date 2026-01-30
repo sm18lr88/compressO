@@ -12,7 +12,8 @@
 # production
 /build
 /out/
-/dist/
+/dist/*
+!/dist/.gitkeep
 
 # misc
 .DS_Store
@@ -37,3 +38,8 @@ yarn-error.log*
 
 analyze
 target
+
+# Local development
+.agents/
+*.patch
+tsconfig.tsbuildinfo
