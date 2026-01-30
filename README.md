@@ -69,8 +69,8 @@ The CLI looks for the bundled `compresso_ffmpeg` sidecar in `src-tauri/bin`. You
 - [x] Cancel during compression
 - [x] Drag & Drop video
 - [x] Mute video
-- [ ] Batch compression
-      ...
+- [x] Batch compression
+      
 
 ### FAQs ❓
 
