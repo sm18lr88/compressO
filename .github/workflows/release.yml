@@ -160,7 +160,7 @@ jobs:
         with:
           files: |
             artifacts/**/*.msi
-            artifacts/**/*.exe
+            artifacts/**/*-setup.exe
             artifacts/**/*.deb
             artifacts/**/*.AppImage
             artifacts/**/*.dmg
