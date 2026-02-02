@@ -91,3 +91,12 @@ pub struct VideoTransforms {
     pub rotate: i32,
     pub flip: VideoFlip,
 }
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QualityPreviewResult {
+    pub source_file_name: String,
+    pub source_file_path: String,
+    pub compressed_file_name: String,
+    pub compressed_file_path: String,
+}

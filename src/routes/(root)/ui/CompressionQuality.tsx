@@ -4,6 +4,7 @@ import { snapshot, useSnapshot } from 'valtio'
 
 import Slider from '@/components/Slider/Slider'
 import Switch from '@/components/Switch'
+import Tooltip from '@/components/Tooltip'
 import { slideDownTransition } from '@/utils/animation'
 import { videoProxy } from '../-state'
 
@@ -67,9 +68,15 @@ function CompressionQuality() {
         }}
         isDisabled={isCompressing || isCompressionSuccessful}
       >
-        <p className="text-gray-600 dark:text-gray-400 text-sm mr-2 w-full">
-          Quality
-        </p>
+        <Tooltip
+          content="Higher quality = larger file size. 70% is a good balance for most videos."
+          placement="top"
+          delay={500}
+        >
+          <p className="text-gray-600 dark:text-gray-400 text-sm mr-2 w-full cursor-help">
+            Quality
+          </p>
+        </Tooltip>
       </Switch>
       <AnimatePresence mode="wait">
         {shouldEnableQuality ? (

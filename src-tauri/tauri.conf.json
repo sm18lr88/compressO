@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "CompressO",
-  "version": "1.4.0",
-  "identifier": "com.compresso.app",
+  "version": "1.7.0",
+  "identifier": "com.compresso.desktop",
   "build": {
     "beforeBuildCommand": "pnpm vite:build",
     "frontendDist": "../dist",
@@ -58,7 +58,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost asset: https://asset.localhost blob: data:; style-src 'unsafe-inline' 'self'; connect-src 'self' ipc: http://ipc.localhost ipc: https://ipc.localhost",
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost asset: https://asset.localhost blob: data:; media-src 'self' asset: http://asset.localhost asset: https://asset.localhost blob: data:; style-src 'unsafe-inline' 'self'; connect-src 'self' ipc: http://ipc.localhost ipc: https://ipc.localhost",
       "dangerousDisableAssetCspModification": ["style-src"],
       "assetProtocol": {
         "enable": true,

@@ -89,7 +89,7 @@ checksum = "c1fd03a028ef38ba2276dce7e33fcd6369c158a1bca17946c4b1b701891c1ff7"
 
 [[package]]
 name = "app"
-version = "1.0.0"
+version = "1.7.0"
 dependencies = [
  "crossbeam-channel",
  "dbus",
@@ -99,6 +99,7 @@ dependencies = [
  "infer 0.15.0",
  "log",
  "nanoid",
+ "once_cell",
  "regex",
  "serde",
  "serde_json",

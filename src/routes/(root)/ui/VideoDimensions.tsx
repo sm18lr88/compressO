@@ -4,6 +4,7 @@ import { useSnapshot } from 'valtio'
 
 import NumberInput from '@/components/NumberInput'
 import Switch from '@/components/Switch'
+import Tooltip from '@/components/Tooltip'
 import { slideDownTransition } from '@/utils/animation'
 import { videoProxy } from '../-state'
 
@@ -117,9 +118,15 @@ function VideoDimensions() {
         }}
         isDisabled={isCompressing || isCompressionSuccessful}
       >
-        <p className="text-gray-600 dark:text-gray-400 text-sm mr-2 w-full">
-          Dimensions
-        </p>
+        <Tooltip
+          content="Resize the video. Reducing resolution (e.g., 4K to 1080p) significantly decreases file size."
+          placement="top"
+          delay={500}
+        >
+          <p className="text-gray-600 dark:text-gray-400 text-sm mr-2 w-full cursor-help">
+            Dimensions
+          </p>
+        </Tooltip>
       </Switch>
       <AnimatePresence mode="wait">
         {shouldEnableCustomDimensions ? (

@@ -8,15 +8,20 @@ use tauri_plugin_log::TargetKind as LogTargetKind;
 
 use lib::tauri_commands::{
     ffmpeg::{
-        __cmd__compress_video, __cmd__generate_video_thumbnail, __cmd__get_video_info,
-        compress_video, generate_video_thumbnail, get_video_info,
+        __cmd__compress_video, __cmd__generate_quality_preview, __cmd__generate_video_thumbnail,
+        __cmd__get_video_info, compress_video, generate_quality_preview, generate_video_thumbnail,
+        get_video_info,
     },
     file_manager::{__cmd__show_item_in_file_manager, show_item_in_file_manager},
     fs::{
         __cmd__delete_cache, __cmd__delete_file, __cmd__get_file_metadata,
         __cmd__get_image_dimension, __cmd__move_file, __cmd__resolve_video_files, delete_cache,
         delete_file, get_file_metadata, get_image_dimension, move_file, resolve_video_files,
-    }
+    },
+    system::{
+        __cmd__cancel_system_shutdown, __cmd__schedule_system_shutdown,
+        cancel_system_shutdown, schedule_system_shutdown,
+    },
 };
 
 #[cfg(target_os = "linux")]
@@ -55,6 +60,7 @@ async fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             compress_video,
+            generate_quality_preview,
             generate_video_thumbnail,
             get_video_info,
             get_image_dimension,
@@ -63,7 +69,9 @@ async fn main() {
             delete_file,
             delete_cache,
             resolve_video_files,
-            show_item_in_file_manager
+            show_item_in_file_manager,
+            schedule_system_shutdown,
+            cancel_system_shutdown
         ])
         .run(tauri::generate_context!())
     {

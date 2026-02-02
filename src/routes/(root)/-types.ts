@@ -40,6 +40,16 @@ export type VideoConfig = {
 export type BatchNamingMode = 'suffix' | 'prefix' | 'replace'
 export type BatchOutputFolderMode = 'source' | 'custom'
 
+export type ShutdownTimerConfig = {
+  delaySeconds: number
+}
+
+export type ShutdownTimerState = {
+  isPending: boolean
+  secondsRemaining: number | null
+  timerId: NodeJS.Timeout | null
+}
+
 export type BatchConfig = {
   namingMode: BatchNamingMode
   prefix: string
@@ -47,6 +57,7 @@ export type BatchConfig = {
   outputFolderMode: BatchOutputFolderMode
   outputFolder: string | null
   includeSubfolders: boolean
+  shutdownTimer: ShutdownTimerConfig
 }
 
 export type BatchItemStatus =
@@ -90,6 +101,7 @@ export type BatchState = {
   failedCount: number
   skippedCount: number
   config: BatchConfig
+  shutdownTimerState: ShutdownTimerState
 }
 
 export type Video = {

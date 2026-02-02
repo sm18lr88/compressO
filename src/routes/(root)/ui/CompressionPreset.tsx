@@ -12,6 +12,13 @@ import { videoProxy } from '../-state'
 
 const presets = Object.keys(compressionPresets)
 
+const presetDescriptions: Record<string, string> = {
+  ironclad:
+    'Slower but smaller files. Uses optimized encoding settings for best compression at your chosen quality.',
+  thunderbolt:
+    'Fast compression. Great for quick results, but files may be slightly larger than Ironclad.',
+}
+
 function CompressionPreset() {
   const {
     state: { isCompressing, isCompressionSuccessful, config },
@@ -72,6 +79,7 @@ function CompressionPreset() {
                     key={preset}
                     value={preset}
                     className="flex justify-center items-center"
+                    description={presetDescriptions[preset]}
                     endContent={
                       preset === compressionPresets.ironclad ? (
                         <Tooltip content="Recommended" aria-label="Recommended">

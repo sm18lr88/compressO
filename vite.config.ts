@@ -24,4 +24,43 @@ export default defineConfig(({ mode }) => ({
     __appVersion: JSON.stringify(packageJSON.version),
     __envMode: JSON.stringify(mode),
   },
+  build: {
+    chunkSizeWarningLimit: 650,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return
+          }
+
+          if (id.includes('@tauri-apps')) {
+            return 'tauri-vendor'
+          }
+
+          if (
+            id.includes('/react/') ||
+            id.includes('/react-dom/') ||
+            id.includes('/scheduler/')
+          ) {
+            return 'react-vendor'
+          }
+
+          if (id.includes('@tanstack/')) {
+            return 'tanstack-vendor'
+          }
+
+          if (
+            id.includes('@heroui/') ||
+            id.includes('/framer-motion/') ||
+            id.includes('/@react-aria/') ||
+            id.includes('/@react-stately/')
+          ) {
+            return 'ui-vendor'
+          }
+
+          return 'vendor'
+        },
+      },
+    },
+  },
 }))

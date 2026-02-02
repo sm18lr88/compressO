@@ -17,6 +17,13 @@ export type CompressionResult = {
   filePath: string
 }
 
+export type QualityPreviewResult = {
+  sourceFileName: string
+  sourceFilePath: string
+  compressedFileName: string
+  compressedFilePath: string
+}
+
 export enum CustomEvents {
   VideoCompressionProgress = 'VideoCompressionProgress',
   CancelInProgressCompression = 'CancelInProgressCompression',

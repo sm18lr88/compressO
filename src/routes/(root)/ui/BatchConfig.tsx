@@ -20,6 +20,7 @@ import {
   moveFile,
   resolveVideoFiles,
 } from '@/tauri/commands/fs'
+import { scheduleSystemShutdown } from '@/tauri/commands/system'
 import {
   CustomEvents,
   extensions,
@@ -34,6 +35,9 @@ import BatchFPS from './BatchFPS'
 import CompressionPreset from './CompressionPreset'
 import CompressionQuality from './CompressionQuality'
 import DragAndDrop from './DragAndDrop'
+import QualityPreviewAction from './QualityPreviewAction'
+import ShutdownCountdownModal from './ShutdownCountdownModal'
+import ShutdownTimer from './ShutdownTimer'
 import styles from './styles.module.css'
 import { videoProxy } from '../-state'
 import {
@@ -109,6 +113,7 @@ function BatchConfig() {
   const [confirmCancel, setConfirmCancel] = React.useState(false)
   const [isCancelling, setIsCancelling] = React.useState(false)
   const [isResolving, setIsResolving] = React.useState(false)
+  const [showCountdownModal, setShowCountdownModal] = React.useState(false)
 
   const totalSize = React.useMemo(() => {
     return batch.items.reduce((sum, item) => sum + (item.sizeInBytes ?? 0), 0)
@@ -481,6 +486,16 @@ function BatchConfig() {
       videoProxy.state.batch.cancelRequested = false
       setConfirmCancel(false)
       setIsCancelling(false)
+
+      // Trigger shutdown timer if configured
+      const shutdownConfig =
+        snapshot(videoProxy).state.batch.config.shutdownTimer
+      if (
+        shutdownConfig.delaySeconds > 0 &&
+        !videoProxy.state.batch.cancelRequested
+      ) {
+        handleScheduleShutdown(shutdownConfig.delaySeconds)
+      }
     }
   }
 
@@ -535,6 +550,49 @@ function BatchConfig() {
         return 'text-gray-500'
     }
   }
+
+  const handleScheduleShutdown = async (delaySeconds: number) => {
+    try {
+      await scheduleSystemShutdown(delaySeconds)
+
+      videoProxy.state.batch.shutdownTimerState.isPending = true
+      videoProxy.state.batch.shutdownTimerState.secondsRemaining = delaySeconds
+      setShowCountdownModal(true)
+
+      // Start countdown interval
+      const intervalId = setInterval(() => {
+        const remaining =
+          videoProxy.state.batch.shutdownTimerState.secondsRemaining
+        if (remaining !== null && remaining > 0) {
+          videoProxy.state.batch.shutdownTimerState.secondsRemaining =
+            remaining - 1
+        } else {
+          clearInterval(intervalId)
+          videoProxy.state.batch.shutdownTimerState.timerId = null
+        }
+      }, 1000)
+
+      videoProxy.state.batch.shutdownTimerState.timerId =
+        intervalId as unknown as NodeJS.Timeout
+
+      const delayMinutes = Math.ceil(delaySeconds / 60)
+      toast.success(
+        `Shutdown scheduled in ${delayMinutes} minute${delayMinutes !== 1 ? 's' : ''}.`,
+      )
+    } catch (error) {
+      toast.error('Failed to schedule shutdown: ' + String(error))
+    }
+  }
+
+  React.useEffect(() => {
+    return () => {
+      const timerId = videoProxy.state.batch.shutdownTimerState.timerId
+      if (timerId) {
+        clearInterval(timerId)
+        videoProxy.state.batch.shutdownTimerState.timerId = null
+      }
+    }
+  }, [])
 
   const totalCount = batch.items.length
   const processedCount = batch.items.filter((item) =>
@@ -644,8 +702,8 @@ function BatchConfig() {
             </div>
           </section>
 
-          <section className="px-4 py-6 hlg:py-10 rounded-xl border-2 border-zinc-200 dark:border-zinc-800">
-            <p className="text-xl mb-6 font-bold">Batch Settings</p>
+          <section className="px-4 py-5 pb-24 hlg:py-6 rounded-xl border-2 border-zinc-200 dark:border-zinc-800 max-h-[calc(100vh-7.5rem)] overflow-y-auto">
+            <p className="text-xl mb-4 font-bold">Batch Settings</p>
             <div className="space-y-4">
               <Select
                 fullWidth
@@ -773,11 +831,13 @@ function BatchConfig() {
               </Switch>
             </div>
 
-            <Divider className="my-6" />
+            <ShutdownTimer />
 
-            <p className="text-xl mb-6 font-bold">Output Settings</p>
+            <Divider className="my-4" />
+
+            <p className="text-xl mb-4 font-bold">Output Settings</p>
             <CompressionPreset />
-            <Divider className="my-3" />
+            <Divider className="my-2" />
             <div className="flex items-center my-2">
               <Switch
                 isSelected={config.shouldMuteVideo}
@@ -795,13 +855,13 @@ function BatchConfig() {
                 </div>
               </Switch>
             </div>
-            <Divider className="my-3" />
+            <Divider className="my-2" />
             <CompressionQuality />
-            <Divider className="my-3" />
+            <Divider className="my-2" />
             <BatchDimensions />
-            <Divider className="my-3" />
+            <Divider className="my-2" />
             <BatchFPS />
-            <Divider className="my-3" />
+            <Divider className="my-2" />
 
             <Select
               fullWidth
@@ -835,7 +895,10 @@ function BatchConfig() {
               ))}
             </Select>
 
-            <div className="mt-6">
+            <div className="sticky bottom-0 z-30 mt-5 space-y-3 border-t border-zinc-200 dark:border-zinc-800 bg-white1 dark:bg-black1 pb-1 pt-3 shadow-[0_-8px_24px_rgba(0,0,0,0.28)]">
+              {!batch.isCompressing ? (
+                <QualityPreviewAction mode="batch" />
+              ) : null}
               {batch.isCompressing ? (
                 <Button
                   color="danger"
@@ -881,6 +944,10 @@ function BatchConfig() {
       <DragAndDrop
         disable={batch.isCompressing}
         onFiles={(paths) => handleAddPaths(paths)}
+      />
+      <ShutdownCountdownModal
+        isOpen={showCountdownModal}
+        onClose={() => setShowCountdownModal(false)}
       />
     </Layout>
   )

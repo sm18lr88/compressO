@@ -1,9 +1,10 @@
 use crate::domain::{
     CancelInProgressCompressionPayload, CompressionResult, CustomEvents, TauriEvents,
-    VideoCompressionProgress, VideoInfo, VideoThumbnail,
+    QualityPreviewResult, VideoCompressionProgress, VideoInfo, VideoThumbnail,
 };
 use crossbeam_channel::{Receiver, Sender};
 use nanoid::nanoid;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde_json::Value;
 use shared_child::SharedChild;
@@ -11,32 +12,46 @@ use std::{
     io::{BufRead, BufReader},
     path::{Path, PathBuf},
     process::{Command, Stdio},
-    sync::{Arc, Mutex, OnceLock},
+    sync::{Arc, Mutex},
 };
 use strum::EnumProperty;
 use tauri::{AppHandle, Emitter, Listener, Manager};
 use tauri_plugin_shell::ShellExt;
 
 // Static regex patterns compiled once at first use
-static OUT_TIME_RE: OnceLock<Regex> = OnceLock::new();
-static DURATION_RE: OnceLock<Regex> = OnceLock::new();
-static DIMENSION_RE: OnceLock<Regex> = OnceLock::new();
-static FPS_RE: OnceLock<Regex> = OnceLock::new();
+static OUT_TIME_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"out_time=(?P<out_time>.*?)\n").expect("out_time regex pattern is invalid"));
+static DURATION_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"Duration: (?P<duration>.*?),").expect("duration regex pattern is invalid"));
+static DIMENSION_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"Video:.*?,.*? (?P<width>\d{2,5})x(?P<height>\d{2,5})")
+        .expect("dimension regex pattern is invalid")
+});
+static FPS_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?P<fps>\d+(\.\d+)?) fps").expect("fps regex pattern is invalid"));
 
 fn get_out_time_re() -> &'static Regex {
-    OUT_TIME_RE.get_or_init(|| Regex::new(r"out_time=(?P<out_time>.*?)\n").expect("out_time regex pattern is invalid"))
+    &OUT_TIME_RE
 }
 
 fn get_duration_re() -> &'static Regex {
-    DURATION_RE.get_or_init(|| Regex::new(r"Duration: (?P<duration>.*?),").expect("duration regex pattern is invalid"))
+    &DURATION_RE
 }
 
 fn get_dimension_re() -> &'static Regex {
-    DIMENSION_RE.get_or_init(|| Regex::new(r"Video:.*?,.*? (?P<width>\d{2,5})x(?P<height>\d{2,5})").expect("dimension regex pattern is invalid"))
+    &DIMENSION_RE
 }
 
 fn get_fps_re() -> &'static Regex {
-    FPS_RE.get_or_init(|| Regex::new(r"(?P<fps>\d+(\.\d+)?) fps").expect("fps regex pattern is invalid"))
+    &FPS_RE
+}
+
+fn parse_duration_to_seconds(duration: &str) -> Option<f64> {
+    let mut parts = duration.split(':');
+    let hours = parts.next()?.trim().parse::<f64>().ok()?;
+    let minutes = parts.next()?.trim().parse::<f64>().ok()?;
+    let seconds = parts.next()?.trim().parse::<f64>().ok()?;
+    Some((hours * 3600.0) + (minutes * 60.0) + seconds)
 }
 
 pub struct FFMPEG {
@@ -530,6 +545,248 @@ impl FFMPEG {
             id,
             file_name,
             file_path: output_path.display().to_string(),
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn generate_quality_preview(
+        &mut self,
+        video_path: &str,
+        convert_to_extension: &str,
+        preset_name: Option<&str>,
+        should_mute_video: bool,
+        quality: u16,
+        dimensions: Option<(u32, u32)>,
+        fps: Option<&str>,
+        transforms_history: Option<&Vec<Value>>,
+        preview_seconds: Option<u16>,
+    ) -> Result<QualityPreviewResult, String> {
+        if !Path::exists(Path::new(video_path)) {
+            return Err(String::from("File does not exist in given path."));
+        }
+
+        if !EXTENSIONS.contains(&convert_to_extension) {
+            return Err(String::from("Invalid convert to extension."));
+        }
+
+        let preview_seconds_value = preview_seconds.unwrap_or(20).clamp(1, 120);
+        let preview_duration_arg = preview_seconds_value.to_string();
+        let preview_duration_f64 = f64::from(preview_seconds_value);
+
+        let middle_seek_seconds = self
+            .get_video_info(video_path)
+            .await
+            .ok()
+            .and_then(|info| info.duration)
+            .and_then(|duration| parse_duration_to_seconds(duration.as_str()))
+            .map(|total_seconds| {
+                if total_seconds > preview_duration_f64 {
+                    ((total_seconds / 2.0) - (preview_duration_f64 / 2.0)).max(0.0)
+                } else {
+                    0.0
+                }
+            })
+            .unwrap_or(0.0);
+        let seek_arg = format!("{middle_seek_seconds:.3}");
+
+        let id = nanoid!();
+
+        let source_file_name = format!("{}-preview-source.mp4", id);
+        let compressed_preview_extension = if convert_to_extension == "webm" {
+            "webm"
+        } else {
+            "mp4"
+        };
+        let compressed_file_name = format!(
+            "{}-preview-compressed.{}",
+            id, compressed_preview_extension
+        );
+
+        let source_output: PathBuf = [self.assets_dir.clone(), PathBuf::from(&source_file_name)]
+            .iter()
+            .collect();
+        let compressed_output: PathBuf =
+            [self.assets_dir.clone(), PathBuf::from(&compressed_file_name)]
+                .iter()
+                .collect();
+
+        let max_crf: u16 = 36;
+        let min_crf: u16 = 24;
+        let default_crf: u16 = 28;
+        let compression_quality = if (0..=100).contains(&quality) {
+            let diff = (max_crf - min_crf) - ((max_crf - min_crf) * quality) / 100;
+            format!("{}", min_crf + diff)
+        } else {
+            format!("{default_crf}")
+        };
+
+        let transform_filters = if let Some(transforms) = transforms_history {
+            self.build_ffmpeg_filters(transforms)
+        } else {
+            String::from("")
+        };
+
+        let padding = "pad=ceil(iw/2)*2:ceil(ih/2)*2";
+        let pad_filter = if let Some((width, height)) = dimensions {
+            format!("scale={}:{},{}", width, height, padding)
+        } else {
+            padding.to_string()
+        };
+
+        let mut vf_filter = String::new();
+        if !transform_filters.is_empty() {
+            vf_filter.push_str(&transform_filters);
+            vf_filter.push(',');
+        }
+        vf_filter.push_str(&pad_filter);
+
+        let mut source_args: Vec<String> = vec![
+            String::from("-i"),
+            String::from(video_path),
+            String::from("-hide_banner"),
+            String::from("-nostats"),
+            String::from("-loglevel"),
+            String::from("error"),
+            String::from("-ss"),
+            seek_arg.clone(),
+            String::from("-t"),
+            preview_duration_arg.clone(),
+            String::from("-pix_fmt"),
+            String::from("yuv420p"),
+            String::from("-c:v"),
+            String::from("libx264"),
+            String::from("-preset"),
+            String::from("veryfast"),
+            String::from("-crf"),
+            String::from("18"),
+            String::from("-movflags"),
+            String::from("+faststart"),
+            String::from("-vf"),
+            vf_filter.clone(),
+        ];
+        if let Some(fps_val) = fps {
+            source_args.push(String::from("-r"));
+            source_args.push(String::from(fps_val));
+        }
+        source_args.push(String::from("-an"));
+        source_args.push(source_output.display().to_string());
+        source_args.push(String::from("-y"));
+
+        let mut source_command = Command::from(
+            self.app
+                .shell()
+                .sidecar("compresso_ffmpeg")
+                .map_err(|err| format!("[ffmpeg-sidecar]: {:?}", err))?,
+        );
+        source_command.args(source_args);
+        let source_status = source_command.status().map_err(|err| err.to_string())?;
+        if !source_status.success() {
+            let _ = std::fs::remove_file(&source_output);
+            return Err(String::from("Could not generate source preview."));
+        }
+
+        let mut compressed_args: Vec<String> = match preset_name {
+            Some("thunderbolt") => vec![
+                String::from("-i"),
+                String::from(video_path),
+                String::from("-hide_banner"),
+                String::from("-nostats"),
+                String::from("-loglevel"),
+                String::from("error"),
+                String::from("-ss"),
+                seek_arg.clone(),
+                String::from("-t"),
+                preview_duration_arg.clone(),
+                String::from("-c:v"),
+                String::from("libx264"),
+                String::from("-crf"),
+                compression_quality.clone(),
+            ],
+            Some(_) => vec![
+                String::from("-i"),
+                String::from(video_path),
+                String::from("-hide_banner"),
+                String::from("-nostats"),
+                String::from("-loglevel"),
+                String::from("error"),
+                String::from("-ss"),
+                seek_arg.clone(),
+                String::from("-t"),
+                preview_duration_arg.clone(),
+                String::from("-pix_fmt"),
+                String::from("yuv420p"),
+                String::from("-c:v"),
+                String::from("libx264"),
+                String::from("-b:v"),
+                String::from("0"),
+                String::from("-movflags"),
+                String::from("+faststart"),
+                String::from("-preset"),
+                String::from("slow"),
+                String::from("-qp"),
+                String::from("0"),
+                String::from("-crf"),
+                compression_quality.clone(),
+            ],
+            None => vec![
+                String::from("-i"),
+                String::from(video_path),
+                String::from("-hide_banner"),
+                String::from("-nostats"),
+                String::from("-loglevel"),
+                String::from("error"),
+                String::from("-ss"),
+                seek_arg,
+                String::from("-t"),
+                preview_duration_arg,
+                String::from("-c:v"),
+                String::from("libx264"),
+                String::from("-crf"),
+                compression_quality.clone(),
+            ],
+        };
+
+        compressed_args.push(String::from("-vf"));
+        compressed_args.push(vf_filter);
+
+        if let Some(fps_val) = fps {
+            compressed_args.push(String::from("-r"));
+            compressed_args.push(String::from(fps_val));
+        }
+
+        if compressed_preview_extension == "webm" {
+            compressed_args.push(String::from("-c:v"));
+            compressed_args.push(String::from("libvpx-vp9"));
+        }
+
+        if should_mute_video {
+            compressed_args.push(String::from("-an"));
+        }
+
+        compressed_args.push(compressed_output.display().to_string());
+        compressed_args.push(String::from("-y"));
+
+        let mut compressed_command = Command::from(
+            self.app
+                .shell()
+                .sidecar("compresso_ffmpeg")
+                .map_err(|err| format!("[ffmpeg-sidecar]: {:?}", err))?,
+        );
+        compressed_command.args(compressed_args);
+        let compressed_status = compressed_command
+            .status()
+            .map_err(|err| err.to_string())?;
+        if !compressed_status.success() {
+            let _ = std::fs::remove_file(&source_output);
+            let _ = std::fs::remove_file(&compressed_output);
+            return Err(String::from("Could not generate compressed preview."));
+        }
+
+        Ok(QualityPreviewResult {
+            source_file_name,
+            source_file_path: source_output.display().to_string(),
+            compressed_file_name,
+            compressed_file_path: compressed_output.display().to_string(),
         })
     }
 

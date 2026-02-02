@@ -1,5 +1,5 @@
 use crate::{
-    domain::{CompressionResult, VideoInfo, VideoThumbnail},
+    domain::{CompressionResult, QualityPreviewResult, VideoInfo, VideoThumbnail},
     ffmpeg::{self},
     fs::delete_stale_files,
 };
@@ -60,4 +60,43 @@ pub async fn generate_video_thumbnail(
 pub async fn get_video_info(app: tauri::AppHandle, video_path: &str) -> Result<VideoInfo, String> {
     let mut ffmpeg = ffmpeg::FFMPEG::new(&app)?;
     ffmpeg.get_video_info(video_path).await
+}
+
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn generate_quality_preview(
+    app: tauri::AppHandle,
+    video_path: &str,
+    convert_to_extension: &str,
+    preset_name: Option<&str>,
+    should_mute_video: bool,
+    quality: u16,
+    dimensions: Option<(u32, u32)>,
+    fps: Option<&str>,
+    transforms_history: Option<Vec<Value>>,
+    preview_seconds: Option<u16>,
+) -> Result<QualityPreviewResult, String> {
+    let mut ffmpeg = ffmpeg::FFMPEG::new(&app)?;
+    if let Ok(files) =
+        delete_stale_files(ffmpeg.get_asset_dir().as_str(), 24 * 60 * 60 * 1000).await
+    {
+        log::debug!(
+            "[main] Stale files deleted. Number of deleted files = {}",
+            files.len()
+        )
+    };
+
+    ffmpeg
+        .generate_quality_preview(
+            video_path,
+            convert_to_extension,
+            preset_name,
+            should_mute_video,
+            quality,
+            dimensions,
+            fps,
+            transforms_history.as_ref(),
+            preview_seconds,
+        )
+        .await
 }

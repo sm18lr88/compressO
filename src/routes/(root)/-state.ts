@@ -19,6 +19,9 @@ const batchConfigInitialState: BatchConfig = {
   outputFolderMode: 'source',
   outputFolder: null,
   includeSubfolders: true,
+  shutdownTimer: {
+    delaySeconds: 0,
+  },
 }
 
 const batchInitialState: BatchState = {
@@ -31,6 +34,11 @@ const batchInitialState: BatchState = {
   failedCount: 0,
   skippedCount: 0,
   config: batchConfigInitialState,
+  shutdownTimerState: {
+    isPending: false,
+    secondsRemaining: null,
+    timerId: null,
+  },
 }
 
 const videoInitialState: Video = {

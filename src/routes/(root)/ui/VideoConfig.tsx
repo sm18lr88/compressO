@@ -24,6 +24,7 @@ import CompressionPreset from './CompressionPreset'
 import CompressionQuality from './CompressionQuality'
 import FileName from './FileName'
 import PreviewVideo from './PreviewVideo'
+import QualityPreviewAction from './QualityPreviewAction'
 import SaveVideo from './SaveVideo'
 import Success from './Success'
 import styles from './styles.module.css'
@@ -230,13 +231,13 @@ function VideoConfig() {
             </section>
           </AnimatePresence>
           <section
-            className="px-4 py-6 hlg:py-10 rounded-xl border-2 border-zinc-200 dark:border-zinc-800"
+            className="px-4 py-5 pb-24 hlg:py-6 rounded-xl border-2 border-zinc-200 dark:border-zinc-800 max-h-[calc(100vh-7.5rem)] overflow-y-auto"
             {...zoomInTransition}
           >
-            <p className="text-xl mb-6 font-bold">Output Settings</p>
+            <p className="text-xl mb-4 font-bold">Output Settings</p>
             <>
               <CompressionPreset />
-              <Divider className="my-3" />
+              <Divider className="my-2" />
             </>
             <>
               <div className="flex items-center my-2">
@@ -255,25 +256,25 @@ function VideoConfig() {
                   </div>
                 </Switch>
               </div>
-              <Divider className="my-3" />
+              <Divider className="my-2" />
             </>
 
             <>
               <CompressionQuality />
-              <Divider className="my-3" />
+              <Divider className="my-2" />
             </>
             {dimensions ? (
               <>
                 <VideoDimensions />
-                <Divider className="my-3" />
+                <Divider className="my-2" />
                 <TransformVideo />
-                <Divider className="my-3" />
+                <Divider className="my-2" />
               </>
             ) : null}
             {fps ? (
               <>
                 <VideoFPS />
-                <Divider className="my-3" />
+                <Divider className="my-2" />
               </>
             ) : null}
             <>
@@ -313,7 +314,10 @@ function VideoConfig() {
                 </Select>
               </div>
             </>
-            <div className="mt-4">
+            <div className="sticky bottom-0 z-30 mt-4 space-y-3 border-t border-zinc-200 dark:border-zinc-800 bg-white1 dark:bg-black1 pb-1 pt-3 shadow-[0_-8px_24px_rgba(0,0,0,0.28)]">
+              {!isCompressing && !isCompressionSuccessful ? (
+                <QualityPreviewAction mode="single" />
+              ) : null}
               {isCompressing ? (
                 <CancelCompression />
               ) : isCompressionSuccessful ? (

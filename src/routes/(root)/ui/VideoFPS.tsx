@@ -4,6 +4,7 @@ import { useSnapshot } from 'valtio'
 
 import Select from '@/components/Select'
 import Switch from '@/components/Switch'
+import Tooltip from '@/components/Tooltip'
 import { slideDownTransition } from '@/utils/animation'
 import { videoProxy } from '../-state'
 
@@ -28,9 +29,15 @@ function VideoFPS() {
         }}
         isDisabled={isCompressing || isCompressionSuccessful}
       >
-        <p className="text-gray-600 dark:text-gray-400 text-sm mr-2 w-full">
-          FPS
-        </p>
+        <Tooltip
+          content="Frames per second. Lowering FPS (e.g., 60 to 30) reduces file size. Best for videos without fast motion."
+          placement="top"
+          delay={500}
+        >
+          <p className="text-gray-600 dark:text-gray-400 text-sm mr-2 w-full cursor-help">
+            FPS
+          </p>
+        </Tooltip>
       </Switch>
       <AnimatePresence mode="wait">
         {shouldEnableCustomFPS ? (

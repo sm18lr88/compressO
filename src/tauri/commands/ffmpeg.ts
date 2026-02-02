@@ -2,6 +2,7 @@ import { core } from '@tauri-apps/api'
 
 import {
   CompressionResult,
+  QualityPreviewResult,
   VideoInfo,
   VideoThumbnail,
   VideoTransformsHistory,
@@ -56,4 +57,40 @@ export function getFileMetadata(filePath: string): Promise<FileMetadata> {
 
 export function getVideoInfo(videoPath: string): Promise<VideoInfo | null> {
   return core.invoke('get_video_info', { videoPath })
+}
+
+export function generateQualityPreview({
+  videoPath,
+  convertToExtension,
+  presetName,
+  shouldMuteVideo = false,
+  quality = 101,
+  dimensions,
+  fps,
+  transformsHistory,
+  previewSeconds = 20,
+}: {
+  videoPath: string
+  convertToExtension?: string
+  presetName?: string | null
+  shouldMuteVideo?: boolean
+  quality?: number
+  dimensions?: readonly [number, number]
+  fps?: string
+  transformsHistory?: VideoTransformsHistory[]
+  previewSeconds?: number
+}): Promise<QualityPreviewResult> {
+  return core.invoke('generate_quality_preview', {
+    videoPath,
+    convertToExtension: convertToExtension ?? 'mp4',
+    presetName,
+    shouldMuteVideo,
+    quality,
+    fps,
+    previewSeconds,
+    ...(dimensions
+      ? { dimensions: [Math.round(dimensions[0]), Math.round(dimensions[1])] }
+      : {}),
+    transformsHistory,
+  })
 }
