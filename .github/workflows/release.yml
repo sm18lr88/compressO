@@ -133,6 +133,21 @@ jobs:
         with:
           path: artifacts
 
+      - name: Normalize raw binary names
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          cp "artifacts/compressO-windows/app.exe" "artifacts/CompressO_${VERSION}_windows-x64.exe"
+          cp "artifacts/compressO-linux/app" "artifacts/CompressO_${VERSION}_linux-x64"
+          cp "artifacts/compressO-macos-arm64/app" "artifacts/CompressO_${VERSION}_macos-arm64"
+          cp "artifacts/compressO-macos-x64/app" "artifacts/CompressO_${VERSION}_macos-x64"
+
+          chmod +x "artifacts/CompressO_${VERSION}_linux-x64"
+          chmod +x "artifacts/CompressO_${VERSION}_macos-arm64"
+          chmod +x "artifacts/CompressO_${VERSION}_macos-x64"
+
       - name: Generate checksums
         shell: bash
         run: |
@@ -149,6 +164,9 @@ jobs:
             artifacts/**/*.deb
             artifacts/**/*.AppImage
             artifacts/**/*.dmg
-            artifacts/**/app
+            artifacts/CompressO_*_windows-x64.exe
+            artifacts/CompressO_*_linux-x64
+            artifacts/CompressO_*_macos-arm64
+            artifacts/CompressO_*_macos-x64
             artifacts/checksums.sha256
           generate_release_notes: true
