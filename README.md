@@ -1,7 +1,3 @@
-<p align="center">
-  <img width="700" alt="CompressO Screenshot 1" src="https://github.com/user-attachments/assets/e24596c1-4b88-4f99-bd6e-0abd146fd21d" />
-</p>
-
 # [CompressO](https://github.com/codeforreal1/compressO)
 
 Cross-platform offline video compression app built with Tauri + FFmpeg
@@ -20,7 +16,15 @@ Cross-platform offline video compression app built with Tauri + FFmpeg
       <img alt="macOS" src="https://img.shields.io/badge/-macOS-black?style=flat-square&logo=apple&logoColor=white" />
     </a>
   </div>
+
 </div>
+
+<p align="center">
+  <img width="700" alt="CompressO Screenshot 1" src="https://github.com/user-attachments/assets/4bffb148-8047-4f89-89ae-a5ab68f65bc0" />
+</p>
+<p align="center">
+  <img width="700" alt="CompressO Screenshot 1" src="https://github.com/user-attachments/assets/e24596c1-4b88-4f99-bd6e-0abd146fd21d" />
+</p>
 <p align="center">
   <img width="700" alt="CompressO Screenshot 2" src="https://github.com/user-attachments/assets/bde20671-a775-468b-af09-7ee8a7979fb5" />
 </p>
