@@ -58,17 +58,6 @@ Default output location:
 
 If `CARGO_TARGET_DIR` is set in your environment, artifacts are written there instead.
 
-## CI/CD
-
-- CI workflow: `.github/workflows/ci.yml`
-  - Runs on push/PR to `main`
-  - Matrix: Windows, Linux, macOS
-  - Checks: `pnpm tsc:check`, `cargo check`, `pnpm tauri build --no-bundle`
-  - Rust warnings fail CI (`RUSTFLAGS=-D warnings`)
-- Release workflow: `.github/workflows/release.yml`
-  - Runs on `v*` tags
-  - Builds and publishes `.msi`, `.exe`, `.deb`, `.AppImage`, `.dmg`
-
 ## CLI (Batch)
 
 ```bash
