@@ -28,6 +28,8 @@ use lib::tauri_commands::{
 use lib::tauri_commands::file_manager::DbusState;
 #[cfg(target_os = "linux")]
 use std::sync::Mutex;
+#[cfg(target_os = "linux")]
+use tauri::Manager;
 
 #[cfg(debug_assertions)]
 const LOG_TARGETS: [LogTarget; 1] = [LogTarget::new(LogTargetKind::Stdout)];
