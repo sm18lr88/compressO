@@ -25,14 +25,6 @@ Cross-platform offline video compression app built with Tauri + FFmpeg
   <img width="700" alt="CompressO Screenshot 2" src="https://github.com/user-attachments/assets/bde20671-a775-468b-af09-7ee8a7979fb5" />
 </p>
 
-## Download
-
-Installers are published on GitHub Releases.
-
-- Windows: `.msi`, `.exe` (NSIS)
-- Linux: `.deb`, `.AppImage`
-- macOS: `.dmg` (arm64, x64)
-
 ## Features
 
 - Single and batch compression
